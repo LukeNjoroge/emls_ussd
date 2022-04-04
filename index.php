@@ -4,6 +4,12 @@ header('Content-type: text/plain');
 
 // Mysql connection
 $servername = "localhost";
+
+//Development
+// $username = "luke";
+// $password = "Zivish2019#";
+
+//production
 $username = "ussd";
 $password = "elms2022!";
 $db = "elms_db";
@@ -42,6 +48,20 @@ if (mysqli_num_rows($result) > 0) {
   }
 }
 
+
+$sql_poll = "SELECT id FROM agent_polling_stations WHERE agent_id = ". $row[0];
+$result_poll = mysqli_query($conn, $sql_poll);
+
+$res_poll = array();
+if (mysqli_num_rows($result_poll) > 0) {
+  // output data of each row
+  while($row_poll_agent = mysqli_fetch_assoc($result_poll)) {
+    $query = mysqli_query($conn, "SELECT name FROM polling_stations WHERE id = ". $row_poll_agent["id"]);
+    $row_poll = mysqli_fetch_array($query);
+    array_push($res_poll, $row_poll["name"]);
+  }
+}
+
 //The count tells us what level the user is at i.e how many times the user has responded
 $level =0; 
 if($ussd_string != "")
@@ -50,12 +70,11 @@ if($ussd_string != "")
     $ussd_string_explode = explode("*", $ussd_string);  
     $level = count($ussd_string_explode);  
 }    
-$ussd_text  = "Select aspitantttt ".$phoneNumber." \n";
-ussd_proceed($ussd_text);
+
 //$level=0 means the user hasnt replied.We use levels to track the number of user replies
 if($level == 0)
 {
-    displayMenu($conn, $res); // show the home/first menu
+    displayMenu($conn, $res_poll); // show the home/first menu
 }
 
 if ($level>0)
@@ -77,14 +96,14 @@ function ussd_stop($ussd_text)
 }
 
 //This is the home menu function
-function displayMenu($conn, $res)
+function displayMenu($conn, $res_poll)
 {
-    $count = count($res);
+    $count = count($res_poll);
     if ($count > 0)
     {
-        $ussd_text  = "Select aspitant \n";
-        for ($i = 0; $i < count($res); $i++) {
-            $ussd_text .= ($i + 1).". ". $res[$i] ." \n";
+        $ussd_text  = "Select polling stations \n";
+        for ($i = 0; $i < count($res_poll); $i++) {
+            $ussd_text .= ($i + 1).". ". $res_poll[0] ." \n";
         }
 
         ussd_proceed($ussd_text);
@@ -99,8 +118,23 @@ function displayMenu($conn, $res)
 
 function register_vote($details,$phone,$count,$res,$polling_station_id,$conn){
     if (count($details)==1)
+    {   
+        
+        $ussd_text  = "Select aspitant \n";
+        for ($i = 0; $i < count($res); $i++) {
+            $query = mysqli_query($conn, "SELECT id FROM aspirants WHERE name = '". $res[$i] ."'");
+            $row_asp = mysqli_fetch_array($query);
+
+            $query = mysqli_query($conn, "SELECT no_of_votes FROM election_results WHERE aspirant_id = ". $row_asp[0] ." and polling_station_id = ". $polling_station_id[0]);
+            $row = mysqli_fetch_array($query);
+            $ussd_text .= ($i + 1).". ". $res[$i] ." (Votes: ". $row[0] .") \n";
+        }
+
+        ussd_proceed($ussd_text);
+    }
+    if(count($details) == 2)
     {
-        if ($count < (int)$details[0] || (int)$details[0] <= 0)
+        if ($count < (int)$details[1] || (int)$details[1] <= 0)
         {
             $ussd_text="Invalid Entry, please try again";
             ussd_stop($ussd_text);
@@ -110,19 +144,21 @@ function register_vote($details,$phone,$count,$res,$polling_station_id,$conn){
             $ussd_text="Enter No of votes ";
             ussd_proceed($ussd_text);
         }
-    }
-    if(count($details) == 2)
-    {
-        $votes=$details[1]; 
-        // get current selection
-        $ent = $res[$details[0]-1];
 
-        if ((int)$details[1] < 0)
+    }
+
+    else if(count($details) == 3)
+    {   
+        $votes=$details[2]; 
+        // get current selection
+        $ent = $res[$details[1]-1];
+
+        if ((int)$details[2] < 0)
         {
             $ussd_text="Number of votes cannot be less than 0";
             ussd_stop($ussd_text);
         }
-        else if(!is_numeric($details[1]))
+        else if(!is_numeric($details[2]))
         {
             $ussd_text="Votes must be a Numeric Number";
             ussd_stop($ussd_text);
@@ -135,18 +171,18 @@ function register_vote($details,$phone,$count,$res,$polling_station_id,$conn){
             "1. Accept \n 2. Cancel \n" ;
             ussd_proceed($ussd_text);
         }
-
+        
     }
-
-    else if(count($details) == 3)
-    { 
-        $votes=$details[1]; 
-        $acceptDeny=$details[2]; 
+    else if(count($details) == 4)
+    {
+        ///////////////////////
+        $votes=$details[2]; 
+        $acceptDeny=$details[3]; 
         // get current selection
-        $ent = $res[$details[0]-1];
+        $ent = $res[$details[1]-1];
 
-       if($acceptDeny=="1")
-       {  
+        if($acceptDeny=="1")
+        {  
             $query = mysqli_query($conn, "SELECT id FROM aspirants WHERE name = '". $ent ."'");
             $row = mysqli_fetch_array($query);
         
