@@ -103,7 +103,7 @@ function displayMenu($conn, $res_poll)
     {
         $ussd_text  = "Select polling stations \n";
         for ($i = 0; $i < count($res_poll); $i++) {
-            $ussd_text .= ($i + 1).". ". $res_poll[0] ." \n";
+            $ussd_text .= ($i + 1).". ". $res_poll[$i] ." \n";
         }
 
         ussd_proceed($ussd_text);
