@@ -4,8 +4,8 @@ header('Content-type: text/plain');
 
 // Mysql connection
 $servername = "localhost";
-$username = "luke";
-$password = "Zivish2019#";
+$username = "ussd";
+$password = "elms2022!";
 $db = "elms_db";
 
 // Create connection
