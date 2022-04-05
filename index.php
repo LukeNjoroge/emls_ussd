@@ -31,24 +31,6 @@ $ussd_string = $_POST["text"];
 $query = mysqli_query($conn, "SELECT id FROM agents WHERE mobile_number = ". $phoneNumber);
 $row = mysqli_fetch_array($query);
 
-$query = mysqli_query($conn, "SELECT polling_station_id FROM agent_polling_stations WHERE agent_id = ". $row[0]);
-$row_agent_polling = mysqli_fetch_array($query);
-
-$query = mysqli_query($conn, "SELECT id FROM polling_stations WHERE id = ". $row_agent_polling[0]);
-$row_polling = mysqli_fetch_array($query);
-
-$sql = "SELECT id, name FROM aspirants WHERE pollinging_station_id = ". $row_polling[0];
-$result = mysqli_query($conn, $sql);
-
-$res = array();
-if (mysqli_num_rows($result) > 0) {
-  // output data of each row
-  while($row_aspirants = mysqli_fetch_assoc($result)) {
-    array_push($res, $row_aspirants["name"]);
-  }
-}
-
-
 $sql_poll = "SELECT id FROM agent_polling_stations WHERE agent_id = ". $row[0];
 $result_poll = mysqli_query($conn, $sql_poll);
 
@@ -80,7 +62,7 @@ if($level == 0)
 if ($level>0)
 {  
     $count = count($res);
-    register_vote($ussd_string_explode,$phone,$count, $res, $row_agent_polling, $conn);
+    register_vote($ussd_string_explode,$phone,$row_agent_polling, $res_poll, $conn);
 }
 
 //show the USSD still expect some input from user
@@ -116,25 +98,34 @@ function displayMenu($conn, $res_poll)
     
 }
 
-function register_vote($details,$phone,$count,$res,$polling_station_id,$conn){
+function register_vote($details,$phone,$polling_station_id, $res_poll, $conn){
+    $sql = "SELECT election_results.id AS election_results_id, polling_stations.id AS polling_station_id, polling_stations.name, election_results.aspirant_id,
+            aspirants.name, election_results.no_of_votes
+        FROM polling_stations, election_results, aspirants
+        WHERE polling_stations.id = election_results.polling_station_id
+        AND election_results.aspirant_id = aspirants.id
+        AND polling_stations.name = '". $res_poll[$details[0]-1] ."'";
+    $result = mysqli_query($conn, $sql);
+
+    $res = array();
+    if (mysqli_num_rows($result) > 0) {
+        // output data of each row
+        while($row_aspirants = mysqli_fetch_assoc($result)) {
+            array_push($res, $row_aspirants);
+        }
+    }
     if (count($details)==1)
     {   
-        
         $ussd_text  = "Select aspitant \n";
         for ($i = 0; $i < count($res); $i++) {
-            $query = mysqli_query($conn, "SELECT id FROM aspirants WHERE name = '". $res[$i] ."'");
-            $row_asp = mysqli_fetch_array($query);
-
-            $query = mysqli_query($conn, "SELECT no_of_votes FROM election_results WHERE aspirant_id = ". $row_asp[0] ." and polling_station_id = ". $polling_station_id[0]);
-            $row = mysqli_fetch_array($query);
-            $ussd_text .= ($i + 1).". ". $res[$i] ." (Votes: ". $row[0] .") \n";
+            $ussd_text .= ($i + 1).". ". $res[$i]["name"] ." (Votes: ". $res[$i]["no_of_votes"] .") \n";
         }
 
         ussd_proceed($ussd_text);
     }
     if(count($details) == 2)
     {
-        if ($count < (int)$details[1] || (int)$details[1] <= 0)
+        if (count($res) < (int)$details[1] || (int)$details[1] <= 0)
         {
             $ussd_text="Invalid Entry, please try again";
             ussd_stop($ussd_text);
@@ -165,7 +156,7 @@ function register_vote($details,$phone,$count,$res,$polling_station_id,$conn){
         }
         else
         {
-            $ussd_text="Confirm aspirans vote
+            $ussd_text="Confirm aspirants vote
             Aspirant: " . $ent . "\n" .
             "Total Votes: " . $votes. "\n\n " .
             "1. Accept \n 2. Cancel \n" ;
@@ -187,7 +178,7 @@ function register_vote($details,$phone,$count,$res,$polling_station_id,$conn){
             $row = mysqli_fetch_array($query);
         
             //execute insert query   
-            $sql = "UPDATE election_results SET no_of_votes='". $votes ."' WHERE aspirant_id=".$row[0]." and polling_station_id=".$polling_station_id[0];
+            $sql = "UPDATE election_results SET no_of_votes='". $votes ."' WHERE id=".$res[$details[1]-1]["election_results_id"];
 
             if (mysqli_query($conn, $sql)) 
             {
