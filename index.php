@@ -34,10 +34,10 @@ $row = mysqli_fetch_array($query);
 $query = mysqli_query($conn, "SELECT polling_station_id FROM agent_polling_stations WHERE agent_id = ". $row[0]);
 $row_agent_polling = mysqli_fetch_array($query);
 
-$query = mysqli_query($conn, "SELECT ward_id FROM polling_stations WHERE id = ". $row_agent_polling[0]);
+$query = mysqli_query($conn, "SELECT id FROM polling_stations WHERE id = ". $row_agent_polling[0]);
 $row_polling = mysqli_fetch_array($query);
 
-$sql = "SELECT id, name FROM aspirants WHERE ward_id = ". $row_polling[0];
+$sql = "SELECT id, name FROM aspirants WHERE pollinging_station_id = ". $row_polling[0];
 $result = mysqli_query($conn, $sql);
 
 $res = array();
