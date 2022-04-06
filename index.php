@@ -31,14 +31,14 @@ $ussd_string = $_POST["text"];
 $query = mysqli_query($conn, "SELECT id FROM agents WHERE mobile_number = ". $phoneNumber);
 $row = mysqli_fetch_array($query);
 
-$sql_poll = "SELECT id FROM agent_polling_stations WHERE agent_id = ". $row[0];
+$sql_poll = "SELECT polling_station_id FROM agent_polling_stations WHERE agent_id = ". $row[0];
 $result_poll = mysqli_query($conn, $sql_poll);
 
 $res_poll = array();
 if (mysqli_num_rows($result_poll) > 0) {
   // output data of each row
   while($row_poll_agent = mysqli_fetch_assoc($result_poll)) {
-    $query = mysqli_query($conn, "SELECT name FROM polling_stations WHERE id = ". $row_poll_agent["id"]);
+    $query = mysqli_query($conn, "SELECT name FROM polling_stations WHERE id = ". $row_poll_agent["polling_station_id"]);
     $row_poll = mysqli_fetch_array($query);
     array_push($res_poll, $row_poll["name"]);
   }
