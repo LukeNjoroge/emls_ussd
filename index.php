@@ -31,18 +31,17 @@ $ussd_string = $_POST["text"];
 $query = mysqli_query($conn, "SELECT id FROM agents WHERE mobile_number = ". $phoneNumber);
 $row = mysqli_fetch_array($query);
 
-$sql_poll = "SELECT polling_station_id FROM agent_polling_stations WHERE agent_id = ". $row[0];
-$result_poll = mysqli_query($conn, $sql_poll);
+$sql_elective = "SELECT name FROM elective_posts";
+$result_elective = mysqli_query($conn, $sql_elective);
 
-$res_poll = array();
-if (mysqli_num_rows($result_poll) > 0) {
+$res_elective_posts = array();
+if (mysqli_num_rows($result_elective) > 0) {
   // output data of each row
-  while($row_poll_agent = mysqli_fetch_assoc($result_poll)) {
-    $query = mysqli_query($conn, "SELECT name FROM polling_stations WHERE id = ". $row_poll_agent["polling_station_id"]);
-    $row_poll = mysqli_fetch_array($query);
-    array_push($res_poll, $row_poll["name"]);
+  while($row_elective_posts = mysqli_fetch_assoc($result_elective)) {
+    array_push($res_elective_posts, $row_elective_posts["name"]);
   }
 }
+
 
 //The count tells us what level the user is at i.e how many times the user has responded
 $level =0; 
@@ -56,13 +55,13 @@ if($ussd_string != "")
 //$level=0 means the user hasnt replied.We use levels to track the number of user replies
 if($level == 0)
 {
-    displayMenu($conn, $res_poll); // show the home/first menu
+    displayMenu($conn, $res_elective_posts); // show the home/first menu
 }
 
 if ($level>0)
 {  
     $count = count($res);
-    register_vote($ussd_string_explode,$phone,$row_agent_polling, $res_poll, $conn);
+    register_vote($ussd_string_explode,$phone,$row, $res_elective_posts, $conn);
 }
 
 //show the USSD still expect some input from user
@@ -78,14 +77,14 @@ function ussd_stop($ussd_text)
 }
 
 //This is the home menu function
-function displayMenu($conn, $res_poll)
+function displayMenu($conn, $res_elective_posts)
 {
-    $count = count($res_poll);
+    $count = count($res_elective_posts);
     if ($count > 0)
     {
         $ussd_text  = "Select polling stations \n";
-        for ($i = 0; $i < count($res_poll); $i++) {
-            $ussd_text .= ($i + 1).". ". $res_poll[$i] ." \n";
+        for ($i = 0; $i < count($res_elective_posts); $i++) {
+            $ussd_text .= ($i + 1).". ". $res_elective_posts[$i] ." \n";
         }
 
         ussd_proceed($ussd_text);
@@ -98,13 +97,40 @@ function displayMenu($conn, $res_poll)
     
 }
 
-function register_vote($details,$phone,$polling_station_id, $res_poll, $conn){
+function register_vote($details,$phone,$row, $res_elective_posts, $conn){
+    $sql_poll = "SELECT polling_station_id FROM agent_polling_stations WHERE agent_id = ". $row[0];
+    $result_poll = mysqli_query($conn, $sql_poll);
+    $res_poll = array();
+    if (mysqli_num_rows($result_poll) > 0) {
+      // output data of each row
+      while($row_poll_agent = mysqli_fetch_assoc($result_poll)) {
+        $query = mysqli_query($conn, "SELECT name FROM polling_stations WHERE id = ". $row_poll_agent["polling_station_id"]);
+        $row_poll = mysqli_fetch_array($query);
+        array_push($res_poll, $row_poll["name"]);
+      }
+    }
+
+    $query = mysqli_query($conn, "SELECT id FROM elective_posts WHERE name = '". $res_elective_posts[$details[0]-1] ."'");
+    $row_elective = mysqli_fetch_array($query);
+
+    if (count($details)==1)
+    {   
+        $ussd_text  = "Select Polling Station \n";
+        for ($i = 0; $i < count($res_poll); $i++) {
+            $ussd_text .= ($i + 1).". ". $res_poll[$i] ." \n";
+            // $ussd_text .= ($i + 1).". ". $row_elective[0] ." \n";
+        }
+
+        ussd_proceed($ussd_text);
+    }
+
     $sql = "SELECT election_results.id AS election_results_id, polling_stations.id AS polling_station_id, polling_stations.name, election_results.aspirant_id,
-            aspirants.name, election_results.no_of_votes
+            aspirants.name, aspirants.elective_post_id, election_results.no_of_votes
         FROM polling_stations, election_results, aspirants
         WHERE polling_stations.id = election_results.polling_station_id
         AND election_results.aspirant_id = aspirants.id
-        AND polling_stations.name = '". $res_poll[$details[0]-1] ."'";
+        AND aspirants.elective_post_id = '". $row_elective[0] ."'
+        AND polling_stations.name = '". $res_poll[$details[1]-1] ."'";
     $result = mysqli_query($conn, $sql);
 
     $res = array();
@@ -114,7 +140,7 @@ function register_vote($details,$phone,$polling_station_id, $res_poll, $conn){
             array_push($res, $row_aspirants);
         }
     }
-    if (count($details)==1)
+    if (count($details)==2)
     {   
         $ussd_text  = "Select aspitant \n";
         for ($i = 0; $i < count($res); $i++) {
@@ -123,7 +149,7 @@ function register_vote($details,$phone,$polling_station_id, $res_poll, $conn){
 
         ussd_proceed($ussd_text);
     }
-    if(count($details) == 2)
+    if(count($details) == 3)
     {
         if (count($res) < (int)$details[1] || (int)$details[1] <= 0)
         {
@@ -138,11 +164,11 @@ function register_vote($details,$phone,$polling_station_id, $res_poll, $conn){
 
     }
 
-    else if(count($details) == 3)
+    else if(count($details) == 4)
     {   
-        $votes=$details[2]; 
+        $votes=$details[3]; 
         // get current selection
-        $ent = $res[$details[1]-1];
+        $ent = $res[$details[2]-1]["name"];
 
         if ((int)$details[2] < 0)
         {
@@ -164,21 +190,16 @@ function register_vote($details,$phone,$polling_station_id, $res_poll, $conn){
         }
         
     }
-    else if(count($details) == 4)
+    else if(count($details) == 5)
     {
         ///////////////////////
-        $votes=$details[2]; 
-        $acceptDeny=$details[3]; 
-        // get current selection
-        $ent = $res[$details[1]-1];
+        $votes = $details[3]; 
+        $acceptDeny=$details[4]; 
 
         if($acceptDeny=="1")
-        {  
-            $query = mysqli_query($conn, "SELECT id FROM aspirants WHERE name = '". $ent ."'");
-            $row = mysqli_fetch_array($query);
-        
+        {          
             //execute insert query   
-            $sql = "UPDATE election_results SET no_of_votes='". $votes ."' WHERE id=".$res[$details[1]-1]["election_results_id"];
+            $sql = "UPDATE election_results SET no_of_votes='". $votes ."' WHERE id=".$res[$details[2]-1]["election_results_id"];
 
             if (mysqli_query($conn, $sql)) 
             {
