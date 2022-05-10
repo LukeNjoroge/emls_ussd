@@ -24,7 +24,7 @@ if (!$conn) {
 // Read the variables sent via POST from our API
 $sessionId   = $_POST["sessionId"];
 $serviceCode = $_POST["serviceCode"];
-$phoneNumber = $_POST["phoneNumber"];
+$phoneNumber = format_phone($_POST["phoneNumber"]);
 $ussd_string = $_POST["text"];
 
 //Get data from database
@@ -82,7 +82,7 @@ function displayMenu($conn, $res_elective_posts)
     $count = count($res_elective_posts);
     if ($count > 0)
     {
-        $ussd_text  = "Select polling stations \n";
+        $ussd_text  = "Select elective post \n";
         for ($i = 0; $i < count($res_elective_posts); $i++) {
             $ussd_text .= ($i + 1).". ". $res_elective_posts[$i] ." \n";
         }
@@ -104,7 +104,7 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
     if (mysqli_num_rows($result_poll) > 0) {
       // output data of each row
       while($row_poll_agent = mysqli_fetch_assoc($result_poll)) {
-        $query = mysqli_query($conn, "SELECT name FROM polling_stations WHERE id = ". $row_poll_agent["polling_station_id"]);
+        $query = mysqli_query($conn, "SELECT name FROM polling_centres WHERE id = ". $row_poll_agent["polling_station_id"]);
         $row_poll = mysqli_fetch_array($query);
         array_push($res_poll, $row_poll["name"]);
       }
@@ -124,13 +124,13 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
         ussd_proceed($ussd_text);
     }
 
-    $sql = "SELECT election_results.id AS election_results_id, polling_stations.id AS polling_station_id, polling_stations.name, election_results.aspirant_id,
+    $sql = "SELECT election_results.id AS election_results_id, polling_centres.id AS polling_center_id, polling_centres.name, election_results.aspirant_id,
             aspirants.name, aspirants.elective_post_id, election_results.no_of_votes
-        FROM polling_stations, election_results, aspirants
-        WHERE polling_stations.id = election_results.polling_station_id
+        FROM polling_centres, election_results, aspirants
+        WHERE polling_centres.id = election_results.polling_centre_id
         AND election_results.aspirant_id = aspirants.id
         AND aspirants.elective_post_id = '". $row_elective[0] ."'
-        AND polling_stations.name = '". $res_poll[$details[1]-1] ."'";
+        AND polling_centres.name = '". $res_poll[$details[1]-1] ."'";
     $result = mysqli_query($conn, $sql);
 
     $res = array();
@@ -140,7 +140,27 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
             array_push($res, $row_aspirants);
         }
     }
-    if (count($details)==2)
+
+    $sql_incidence = "SELECT id, name FROM incidence_types";
+    $result_incidence = mysqli_query($conn, $sql_incidence);
+        $res_incidence = array();
+        if (mysqli_num_rows($result_incidence) > 0) {
+            // output data of each row
+            while($row_incidence_type = mysqli_fetch_assoc($result_incidence)) {
+                array_push($res_incidence, $row_incidence_type);
+            }
+        }
+    if (count($details)==2 and $res_elective_posts[$details[0]-1] == "Report Incident")
+    {   
+        $ussd_text  = "Incident type \n";
+        for ($i = 0; $i < count($res_incidence); $i++) {
+            $ussd_text .= ($i + 1).". ". $res_incidence[$i]["name"] ." \n";
+        }
+
+        ussd_proceed($ussd_text);
+    }
+
+    if (count($details)==2 and $res_elective_posts[$details[0]-1] != "Report Incident")
     {   
         $ussd_text  = "Select aspitant \n";
         for ($i = 0; $i < count($res); $i++) {
@@ -149,7 +169,13 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
 
         ussd_proceed($ussd_text);
     }
-    if(count($details) == 3)
+    if(count($details) == 3 and $res_elective_posts[$details[0]-1] == "Report Incident")
+    {
+        $ussd_text="Write Incidence";
+        ussd_proceed($ussd_text);
+
+    }
+    if(count($details) == 3 and $res_elective_posts[$details[0]-1] != "Report Incident")
     {
         if (count($res) < (int)$details[1] || (int)$details[1] <= 0)
         {
@@ -163,8 +189,23 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
         }
 
     }
+    if(count($details) == 4 and $res_elective_posts[$details[0]-1] == "Report Incident")
+    {
+        // $query = mysqli_query($conn, "SELECT id FROM incidence_types WHERE name = ". $res_incidence[$details[2]-1]["id"]);
+        // $row_incidence = mysqli_fetch_array($query);
+        $sql = "INSERT INTO incidences (incidence_type_id, polling_centre_id, description, created, modified) 
+            VALUES (".$res_incidence[$details[2]-1]["id"].", ".$row_elective[0].", '".$details[3]."', '".date("Y-m-d H:i:s")."', '".date("Y-m-d H:i:s")."')";
 
-    else if(count($details) == 4)
+        if (mysqli_query($conn, $sql)) 
+        {
+            $ussd_text="Successfully reported incidence!";
+            ussd_stop($ussd_text);
+        } else {
+            $ussd_text="Error reporting incidence: Contact Admin";
+            ussd_stop($ussd_text);
+        }
+    }
+    else if(count($details) == 4 and $res_elective_posts[$details[0]-1] != "Report Incident")
     {   
         $votes=$details[3]; 
         // get current selection
@@ -216,5 +257,34 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
             ussd_stop($ussd_text);
         }
     }
+}
+
+function format_phone($unformatednumber)
+{
+    $formatednumber = "0";
+    $unformatednumber = str_replace(" ", "", $unformatednumber);
+
+    $int_number = (int)$unformatednumber;
+    $number = (string)$int_number;
+
+    $size = strlen($number);
+    if ($size <= 10)
+    {
+        if ($number[0] == 0)
+        {
+            $number = substr($number,1);
+            $formatednumber = "254". $number;
+        }  
+        else
+        {
+            $formatednumber = "254". $number;
+        } 
+    }  
+    else if ($size == 12 && $number[3] != 0)
+    {
+        $formatednumber = $number;
+    }
+        
+    return $formatednumber;
 }
 ?>
