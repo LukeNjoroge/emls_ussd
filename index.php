@@ -115,7 +115,7 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
 
     if (count($details)==1)
     {   
-        $ussd_text  = "Select Polling Center ".$row_poll_agent["polling_centre_id"]." \n";
+        $ussd_text  = "Select Polling Center \n";
         for ($i = 0; $i < count($res_poll); $i++) {
             $ussd_text .= ($i + 1).". ". $res_poll[$i] ." \n";
             // $ussd_text .= ($i + 1).". ". $row_elective[0] ." \n";
@@ -124,7 +124,7 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
         ussd_proceed($ussd_text);
     }
 
-    $sql = "SELECT election_results.id AS election_results_id, polling_centres.id AS polling_center_id, polling_centres.name, election_results.aspirant_id,
+    $sql = "SELECT election_results.id AS election_results_id, polling_centres.id AS polling_centre_id, polling_centres.name, election_results.aspirant_id,
             aspirants.name, aspirants.elective_post_id, election_results.no_of_votes
         FROM polling_centres, election_results, aspirants
         WHERE polling_centres.id = election_results.polling_centre_id
@@ -244,7 +244,10 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
 
             if (mysqli_query($conn, $sql)) 
             {
-                $ussd_text="Record updated successfully";
+                $sql_poll_center = "UPDATE polling_centres SET results_reporting_status='YES' WHERE id=".$res[$details[2]-1]["polling_centre_id"];
+                mysqli_query($conn, $sql_poll_center);
+
+                $ussd_text="Record updated successfully ".$sql_poll_center."";
                 ussd_stop($ussd_text);
             } else {
                 $ussd_text="Error updating record: Contact Admin";
