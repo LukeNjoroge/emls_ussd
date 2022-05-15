@@ -98,13 +98,13 @@ function displayMenu($conn, $res_elective_posts)
 }
 
 function register_vote($details,$phone,$row, $res_elective_posts, $conn){
-    $sql_poll = "SELECT polling_station_id FROM agent_polling_stations WHERE agent_id = ". $row[0];
+    $sql_poll = "SELECT polling_centre_id FROM agent_polling_centres WHERE agent_id = ". $row[0];
     $result_poll = mysqli_query($conn, $sql_poll);
     $res_poll = array();
     if (mysqli_num_rows($result_poll) > 0) {
       // output data of each row
       while($row_poll_agent = mysqli_fetch_assoc($result_poll)) {
-        $query = mysqli_query($conn, "SELECT name FROM polling_centres WHERE id = ". $row_poll_agent["polling_station_id"]);
+        $query = mysqli_query($conn, "SELECT name FROM polling_centres WHERE id = ". $row_poll_agent["polling_centre_id"]);
         $row_poll = mysqli_fetch_array($query);
         array_push($res_poll, $row_poll["name"]);
       }
@@ -115,7 +115,7 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
 
     if (count($details)==1)
     {   
-        $ussd_text  = "Select Polling Station \n";
+        $ussd_text  = "Select Polling Center ".$row_poll_agent["polling_centre_id"]." \n";
         for ($i = 0; $i < count($res_poll); $i++) {
             $ussd_text .= ($i + 1).". ". $res_poll[$i] ." \n";
             // $ussd_text .= ($i + 1).". ". $row_elective[0] ." \n";
