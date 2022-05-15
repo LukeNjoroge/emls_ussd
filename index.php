@@ -247,7 +247,7 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
                 $sql_poll_center = "UPDATE polling_centres SET results_reporting_status='YES' WHERE id=".$res[$details[2]-1]["polling_centre_id"];
                 mysqli_query($conn, $sql_poll_center);
 
-                $ussd_text="Record updated successfully ".$sql_poll_center."";
+                $ussd_text="Record updated successfully";
                 ussd_stop($ussd_text);
             } else {
                 $ussd_text="Error updating record: Contact Admin";
