@@ -1,0 +1,12 @@
+[Fri May 27 10:41:22.581963 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined variable: res in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:22.582048 2022] [php7:warn] [pid 511794] [client 127.0.0.1:40678] PHP Warning:  count(): Parameter must be an array or an object that implements Countable in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:22.583003 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined offset: 1 in /var/www/html/elms/index.php on line 139
+[Fri May 27 10:41:22.583034 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined offset: -1 in /var/www/html/elms/index.php on line 139
+[Fri May 27 10:41:25.067012 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined variable: res in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:25.067072 2022] [php7:warn] [pid 511794] [client 127.0.0.1:40678] PHP Warning:  count(): Parameter must be an array or an object that implements Countable in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:28.083409 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined variable: res in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:28.083443 2022] [php7:warn] [pid 511794] [client 127.0.0.1:40678] PHP Warning:  count(): Parameter must be an array or an object that implements Countable in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:32.055546 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined variable: res in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:32.055690 2022] [php7:warn] [pid 511794] [client 127.0.0.1:40678] PHP Warning:  count(): Parameter must be an array or an object that implements Countable in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:34.813568 2022] [php7:notice] [pid 511794] [client 127.0.0.1:40678] PHP Notice:  Undefined variable: res in /var/www/html/elms/index.php on line 63
+[Fri May 27 10:41:34.813606 2022] [php7:warn] [pid 511794] [client 127.0.0.1:40678] PHP Warning:  count(): Parameter must be an array or an object that implements Countable in /var/www/html/elms/index.php on line 63

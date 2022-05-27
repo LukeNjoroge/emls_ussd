@@ -49,7 +49,7 @@ if($ussd_string != "")
 {  
     $ussd_string= str_replace("#", "*", $ussd_string);  
     $ussd_string_explode = explode("*", $ussd_string);  
-    $level = count($ussd_string_explode);  
+    $level = count($ussd_string_explode);
 }    
 
 //$level=0 means the user hasnt replied.We use levels to track the number of user replies
@@ -61,7 +61,7 @@ if($level == 0)
 if ($level>0)
 {  
     $count = count($res);
-    register_vote($ussd_string_explode,$phone,$row, $res_elective_posts, $conn);
+    register_vote($ussd_string_explode,$phoneNumber,$row, $res_elective_posts, $conn);
 }
 
 //show the USSD still expect some input from user
@@ -113,6 +113,7 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
     $query = mysqli_query($conn, "SELECT id FROM elective_posts WHERE name = '". $res_elective_posts[$details[0]-1] ."'");
     $row_elective = mysqli_fetch_array($query);
 
+
     if (count($details)==1)
     {   
         $ussd_text  = "Select Polling Center \n";
@@ -123,9 +124,14 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
 
         ussd_proceed($ussd_text);
     }
+    // if (count($details)!=1)
+    // { 
+    //     $ussd_text  = "Select Polling Center ". $res_poll[$details[1]-1]."\n";
+    //     ussd_proceed($ussd_text);
+    // }
 
     $sql = "SELECT election_results.id AS election_results_id, polling_centres.id AS polling_centre_id, polling_centres.name, election_results.aspirant_id,
-            aspirants.name, aspirants.elective_post_id, election_results.no_of_votes
+            aspirants.name, aspirants.elective_post_id, election_results.no_of_votes, election_results.no_of_transmissions
         FROM polling_centres, election_results, aspirants
         WHERE polling_centres.id = election_results.polling_centre_id
         AND election_results.aspirant_id = aspirants.id
@@ -240,14 +246,26 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
         if($acceptDeny=="1")
         {          
             //execute insert query   
-            $sql = "UPDATE election_results SET no_of_votes='". $votes ."' WHERE id=".$res[$details[2]-1]["election_results_id"];
+            $sql = "UPDATE election_results SET no_of_votes='". $votes ."', no_of_transmissions='". ($res[$details[2]-1]["no_of_transmissions"] + 1) ."', modified='".date("Y-m-d H:i:s")."' WHERE id=".$res[$details[2]-1]["election_results_id"];
 
             if (mysqli_query($conn, $sql)) 
             {
-                $sql_poll_center = "UPDATE polling_centres SET results_reporting_status='YES' WHERE id=".$res[$details[2]-1]["polling_centre_id"];
+                $sql_poll_center = "UPDATE polling_centres SET results_processing_status='Transmitted', modified='".date("Y-m-d H:i:s")."' WHERE id=".$res[$details[2]-1]["polling_centre_id"];
                 mysqli_query($conn, $sql_poll_center);
 
-                $ussd_text="Record updated successfully";
+                $sql = "INSERT INTO result_processing_histories (agent_id, polling_centre_id, results_processing_status, source, created, modified) 
+                VALUES (".$row[0].", ".$res[$details[2]-1]["polling_centre_id"].", 'Transmitted', 'USSD', '".date("Y-m-d H:i:s")."', '".date("Y-m-d H:i:s")."')";
+                mysqli_query($conn, $sql);
+
+                $sql = "INSERT INTO election_result_histories (election_result_id, no_of_votes, source, agent_id, created) 
+                VALUES (".$res[$details[2]-1]["election_results_id"].", '". $votes ."', 'USSD', ".$row[0].", '".date("Y-m-d H:i:s")."')";
+                mysqli_query($conn, $sql);
+
+                // $ussd_text="Record updated successfully. 
+                // 0: Post another Result 
+                // 00: Go to main menu";
+                // ussd_proceed($ussd_text);
+                $ussd_text="Record updated successfully.";
                 ussd_stop($ussd_text);
             } else {
                 $ussd_text="Error updating record: Contact Admin";
@@ -260,6 +278,27 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
             ussd_stop($ussd_text);
         }
     }
+    // else if(count($details) == 6 and $res_elective_posts[$details[0]-1] != "Report Incident")
+    // {
+    //     if ($details[5] === '0')
+    //     {
+    //         $level = 3;
+    //         // $ussd_text  = "You have select 0 ";
+    //         // ussd_stop($ussd_text);
+    //     }
+    //     else if ($details[5] === '00')
+    //     {
+    //         $level = 0;
+    //         // $ussd_string_explode = [384, 29702, ""];
+    //         // $ussd_text  = "You have select 00 ".$level;
+    //         // ussd_stop($ussd_text);
+    //     }
+    //     else
+    //     {
+    //         $ussd_text  = "Invalid entry, Please enter 0 or 00 ";
+    //         ussd_stop($ussd_text);
+    //     }
+    // }
 }
 
 function format_phone($unformatednumber)
