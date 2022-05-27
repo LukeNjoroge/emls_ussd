@@ -50,6 +50,14 @@ if($ussd_string != "")
     $ussd_string= str_replace("#", "*", $ussd_string);  
     $ussd_string_explode = explode("*", $ussd_string);  
     $level = count($ussd_string_explode);
+
+    if (count($ussd_string_explode) == 6)
+    { 
+        $level =0; 
+        $ussd_string_explode = [384, 29702, ""];
+        $ussd_text  = "\n";
+        ussd_proceed($ussd_text);
+    }
 }    
 
 //$level=0 means the user hasnt replied.We use levels to track the number of user replies
@@ -261,12 +269,12 @@ function register_vote($details,$phone,$row, $res_elective_posts, $conn){
                 VALUES (".$res[$details[2]-1]["election_results_id"].", '". $votes ."', 'USSD', ".$row[0].", '".date("Y-m-d H:i:s")."')";
                 mysqli_query($conn, $sql);
 
-                // $ussd_text="Record updated successfully. 
-                // 0: Post another Result 
-                // 00: Go to main menu";
-                // ussd_proceed($ussd_text);
-                $ussd_text="Record updated successfully.";
-                ussd_stop($ussd_text);
+                $ussd_text="Record updated successfully. 
+                0: Post another Result 
+                00: Go to main menu";
+                ussd_proceed($ussd_text);
+                // $ussd_text="Record updated successfully.";
+                // ussd_stop($ussd_text);
             } else {
                 $ussd_text="Error updating record: Contact Admin";
                 ussd_stop($ussd_text);
